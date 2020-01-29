@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     sidekiq_distributed_cache (0.1.0)
-      rails (~> 5.2.4, >= 5.2.4.1)
+      rails (>= 5.1)
       sidekiq
 
 GEM
