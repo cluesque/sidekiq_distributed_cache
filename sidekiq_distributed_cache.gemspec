@@ -9,9 +9,9 @@ Gem::Specification.new do |spec|
   spec.version     = SidekiqDistributedCache::VERSION
   spec.authors     = ["Bill Kirtley"]
   spec.email       = ["bill.kirtley@gmail.com"]
-  spec.homepage    = "TODO"
-  spec.summary     = "TODO: Summary of SidekiqDistributedCache."
-  spec.description = "TODO: Description of SidekiqDistributedCache."
+  spec.homepage    = "https://github.com/cluesque/sidekiq_distributed_cache"
+  spec.summary     = "Cache objects in redis, generated with thundering herd prevention via sidekiq."
+  spec.description = "Cache objects in redis, generated with thundering herd prevention via sidekiq."
   spec.license     = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
