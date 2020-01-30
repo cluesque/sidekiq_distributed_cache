@@ -23,6 +23,15 @@ class SidekiqDistributedCache::Test < ActiveSupport::TestCase
     assert_equal doohickey.name, found_name
   end
 
+  test 'model method with an argument' do
+    doohickey = Doohickey.create!(name: 'foo bar')
+    assert_equal doohickey.name, 'foo bar'
+
+    promise = SidekiqDistributedCache::Promise.new(object: doohickey, method: :make_a_thing, args: ['bas'], expires_in: 1)
+    answer = promise.execute_and_wait!(1)
+    assert_equal 'foo bar bas', answer
+  end
+
   class CacheExample
     TIMESLICE = 1
     FRESH_FOR = (TIMESLICE * 2).seconds

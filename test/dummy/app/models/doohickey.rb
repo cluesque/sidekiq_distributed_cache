@@ -6,4 +6,7 @@ class Doohickey < ApplicationRecord
     logger.info "Completed thing #{doohickey.name}"
     doohickey.name
   end
+  def make_a_thing(arg)
+    "#{name} #{arg}"
+  end
 end

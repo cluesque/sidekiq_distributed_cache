@@ -27,6 +27,10 @@ If in the end, value is nil, offer a default or "try again" presentation to the 
 
 Also supported: passing arguments, calling an instance method on an object in the database, and explicitly naming your cache tag.
 
+```ruby
+SidekiqDistributedCache::Promise.new(object: widget, method: :do_an_instance_thing, args: ['fun', 12], expires_in: 10 * 60)
+```
+
 ## Installation
 Add this line to your application's Gemfile:
 
