@@ -1,7 +1,7 @@
 module SidekiqDistributedCache
   class Promise
     attr_accessor :klass, :object_param, :method, :expires_in, :args, :instance_id
-    delegate :redis, to: SidekiqDistributedCache
+    delegate :redis, :log, to: SidekiqDistributedCache
 
     def initialize(klass: nil, object: nil, method:, expires_in: 1.hour, args: nil, instance_id: nil, cache_tag: nil)
       if object
@@ -55,13 +55,20 @@ module SidekiqDistributedCache
         return found_message
       else
         # Start a job if no other client has
-        enqueue_job! if should_enqueue_job?
+        if should_enqueue_job?
+          log('promise enqueuing calculator job')
+          enqueue_job!
+        else
+          log('promise calculator job already working')
+        end
 
         # either a job was already running or we started one, now wait for an answer
         if redis.wait_for_done_message(cache_tag, timeout.to_i)
           # ready now, fetch it
-          redis.get(cache_tag)
+          log('promise calculator job finished')
+          existing_value
         elsif raise_on_timeout
+          log('promise timed out awaiting calculator job')
           raise SidekiqDistributedCache::TimeoutError
         end
       end
