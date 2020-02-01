@@ -1,7 +1,8 @@
 module SidekiqDistributedCache
   class Promise
     attr_accessor :klass, :object_param, :method, :expires_in, :args, :instance_id, :job_interlock_timeout
-    delegate :redis, :log, to: SidekiqDistributedCache
+    delegate :redis, :log, :cache_prefix, to: SidekiqDistributedCache
+    delegate :working?, to: :interlock
 
     def initialize(klass: nil, object: nil, object_param: nil, method:, args: nil, instance_id: nil,
                    cache_tag: nil, expires_in: 1.hour, job_interlock_timeout: nil)
@@ -26,7 +27,7 @@ module SidekiqDistributedCache
     def cache_tag
       @cache_tag ||= begin
         [
-          SidekiqDistributedCache.cache_prefix,
+          cache_prefix,
           klass,
           (object_param || '.'),
           method,
@@ -35,20 +36,12 @@ module SidekiqDistributedCache
       end
     end
 
-    def job_interlock_key
-      cache_tag + '/in-progress'
-    end
-
-    def working?
-      redis.get(job_interlock_key)
-    end
-
-    def should_enqueue_job?
-      redis.setnx(job_interlock_key, 'winner!') && redis.expire(job_interlock_key, job_interlock_timeout)
+    def interlock
+      @_interlock ||= Interlock.new(cache_tag, job_interlock_timeout)
     end
 
     def enqueue_job!
-      SidekiqDistributedCache::Worker.perform_async(klass, object_param, method, args, cache_tag, expires_in, job_interlock_key)
+      Worker.perform_async(klass, object_param, method, args, cache_tag, expires_in)
     end
 
     def execute_and_wait!(timeout)
@@ -66,7 +59,7 @@ module SidekiqDistributedCache
         return found_message
       else
         # Start a job if no other client has
-        if should_enqueue_job?
+        if interlock.lock_job?
           log('promise enqueuing calculator job')
           enqueue_job!
         else
@@ -80,7 +73,7 @@ module SidekiqDistributedCache
           existing_value
         elsif raise_on_timeout
           log('promise timed out awaiting calculator job')
-          raise SidekiqDistributedCache::TimeoutError
+          raise TimeoutError
         end
       end
     end

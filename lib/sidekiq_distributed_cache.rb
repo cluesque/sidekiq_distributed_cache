@@ -1,4 +1,5 @@
 require "sidekiq_distributed_cache/worker"
+require "sidekiq_distributed_cache/interlock"
 require "sidekiq_distributed_cache/promise"
 require "sidekiq_distributed_cache/redis"
 

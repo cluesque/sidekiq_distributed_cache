@@ -1,0 +1,27 @@
+module SidekiqDistributedCache
+  class Interlock
+    delegate :redis, to: SidekiqDistributedCache
+    attr_accessor :cache_tag, :job_interlock_timeout
+
+    def initialize(cache_tag, job_interlock_timeout=nil)
+      @cache_tag = cache_tag
+      @job_interlock_timeout = job_interlock_timeout
+    end
+
+    def key
+      cache_tag + '/in-progress'
+    end
+
+    def working?
+      redis.get(key)
+    end
+
+    def lock_job?
+      redis.setnx(key, 'winner!') && redis.expire(key, job_interlock_timeout)
+    end
+
+    def clear
+      redis.del(key)
+    end
+  end
+end
