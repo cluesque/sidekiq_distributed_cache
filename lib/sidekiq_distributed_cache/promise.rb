@@ -38,6 +38,10 @@ module SidekiqDistributedCache
       cache_tag + '/in-progress'
     end
 
+    def working?
+      redis.get(job_interlock_key)
+    end
+
     def should_enqueue_job?
       redis.setnx(job_interlock_key, 'winner!') && redis.expire(job_interlock_key, job_interlock_timeout)
     end
@@ -50,8 +54,12 @@ module SidekiqDistributedCache
       execute_and_wait(timeout, raise_on_timeout: true)
     end
 
+    def existing_value
+      redis.get(cache_tag)
+    end
+
     def execute_and_wait(timeout, raise_on_timeout: false)
-      found_message = redis.get(cache_tag)
+      found_message = existing_value
       if found_message
         # found a previously fresh message
         return found_message
