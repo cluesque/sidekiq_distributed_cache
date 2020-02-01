@@ -6,6 +6,7 @@ class SidekiqDistributedCache::Test < ActiveSupport::TestCase
     Sidekiq.redis = { size: 25 }
     Sidekiq.logger = Rails.logger
 
+    SidekiqDistributedCache.redis.flushdb
     @launcher = Sidekiq::Launcher.new(Sidekiq.options.merge(queues: ['default']));0
     @launcher.run
   end
@@ -68,6 +69,18 @@ class SidekiqDistributedCache::Test < ActiveSupport::TestCase
 
     attr_accessor :start_time, :end_time
   end
+
+  # Test Scenarios:
+  # Time:      1      2      3      4      5      6      7      8
+  # Scenario                                                         Description
+  # A          |o----------->|                                       Cache miss, waits for response
+  # B                 |----->|                                       Second request waits for first calculation
+  # C                              >|<                               Cache hit, immediate response
+  # D                                             |o----------->|    Stale result recalculated
+  #
+  # Time:     11     12     13
+  # E         |o------x                                              Requester E starts calculation, times out before response complete
+  # F                 |----->|                                       Requester F benefits from result abandoned by E
 
   EXAMPLES = [
     # label, request_start, request_timeout, expect_answer, expect_duration
