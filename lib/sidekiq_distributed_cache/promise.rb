@@ -1,9 +1,10 @@
 module SidekiqDistributedCache
   class Promise
-    attr_accessor :klass, :object_param, :method, :expires_in, :args, :instance_id
+    attr_accessor :klass, :object_param, :method, :expires_in, :args, :instance_id, :job_interlock_timeout
     delegate :redis, :log, to: SidekiqDistributedCache
 
-    def initialize(klass: nil, object: nil, method:, expires_in: 1.hour, args: nil, instance_id: nil, cache_tag: nil)
+    def initialize(klass: nil, object: nil, method:, args: nil, instance_id: nil,
+                   cache_tag: nil, expires_in: 1.hour, job_interlock_timeout: nil)
       if object
         @klass = object.class.name
         @object_param = object.to_param
@@ -15,6 +16,7 @@ module SidekiqDistributedCache
       raise "Must provide method" unless method
       @method = method
       @expires_in = expires_in.to_i
+      @job_interlock_timeout = job_interlock_timeout || @expires_in
       @args = args
       @instance_id = instance_id
       @cache_tag = cache_tag
@@ -37,7 +39,7 @@ module SidekiqDistributedCache
     end
 
     def should_enqueue_job?
-      redis.setnx(job_interlock_key, 'winner!') && redis.expire(job_interlock_key, expires_in)
+      redis.setnx(job_interlock_key, 'winner!') && redis.expire(job_interlock_key, job_interlock_timeout)
     end
 
     def enqueue_job!
