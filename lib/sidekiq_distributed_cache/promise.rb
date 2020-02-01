@@ -3,13 +3,14 @@ module SidekiqDistributedCache
     attr_accessor :klass, :object_param, :method, :expires_in, :args, :instance_id, :job_interlock_timeout
     delegate :redis, :log, to: SidekiqDistributedCache
 
-    def initialize(klass: nil, object: nil, method:, args: nil, instance_id: nil,
+    def initialize(klass: nil, object: nil, object_param: nil, method:, args: nil, instance_id: nil,
                    cache_tag: nil, expires_in: 1.hour, job_interlock_timeout: nil)
       if object
         @klass = object.class.name
         @object_param = object.to_param
       elsif klass
         @klass = klass
+        @object_param = object_param
       else
         raise "Must provide either klass or object"
       end
