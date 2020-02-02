@@ -1,10 +1,10 @@
 module SidekiqDistributedCache
   class Promise
-    attr_accessor :klass, :object_param, :method, :expires_in, :args, :instance_id, :job_interlock_timeout
+    attr_accessor :klass, :object_param, :method, :expires_in, :args, :job_interlock_timeout
     delegate :redis, :log, :cache_prefix, to: SidekiqDistributedCache
     delegate :working?, to: :interlock
 
-    def initialize(klass: nil, object: nil, object_param: nil, method:, args: nil, instance_id: nil,
+    def initialize(klass: nil, object: nil, object_param: nil, method:, args: nil,
                    cache_tag: nil, expires_in: 1.hour, job_interlock_timeout: nil)
       if object
         @klass = object.class.name
@@ -20,7 +20,6 @@ module SidekiqDistributedCache
       @expires_in = expires_in.to_i
       @job_interlock_timeout = job_interlock_timeout || @expires_in
       @args = args
-      @instance_id = instance_id
       @cache_tag = cache_tag
     end
 
