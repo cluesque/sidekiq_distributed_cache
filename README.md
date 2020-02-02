@@ -16,7 +16,12 @@ In the controller:
 
 ```ruby
 promise = SidekiqDistributedCache::Promise.new(klass: Widget, method: :do_a_thing, expires_in: 10 * 60)
-value = promise.execute_and_wait!(5)
+if promise.ready_within?(5.seconds)
+  # Render using the generated thing
+  @thing = promise.value
+else
+  # Render some "try again in a bit" presentation
+end
 ```
 
 If no other workers are currently calculating the value, this will queue up a sidekiq job to call `Widget.do_a_thing`.  If other workers are currently calculating, it will not start another, preventing the thundering herd.

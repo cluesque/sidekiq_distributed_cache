@@ -99,4 +99,13 @@ class ConcurrentExamplesTest < ActiveSupport::TestCase
         "Example #{example.label} started #{example.start_time.strftime("%H:%M:%S.%L")} duration #{example.expect_duration} ended #{example.end_time.strftime("%H:%M:%S.%L")}"
     end
   end
+
+  test 'timing out' do
+    promise = SidekiqDistributedCache::Promise.new(klass: Doohickey, method: :do_a_thing, expires_in: 2.seconds)
+    duration = Benchmark.realtime do
+      refute promise.ready_within?(1.second)
+    end
+    assert_includes 1.0..2.0, duration, "Should time out after about a second"
+    assert promise.timed_out?
+  end
 end

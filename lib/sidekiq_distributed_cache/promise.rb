@@ -1,6 +1,7 @@
 module SidekiqDistributedCache
   class Promise
     attr_accessor :klass, :object_param, :method, :expires_in, :args, :job_interlock_timeout
+    attr_accessor :timed_out, :value
     delegate :redis, :log, :cache_prefix, to: SidekiqDistributedCache
     delegate :working?, to: :interlock
 
@@ -48,13 +49,24 @@ module SidekiqDistributedCache
     end
 
     def existing_value
-      redis.get(cache_tag)
+      @value ||= redis.get(cache_tag)
+    end
+
+    def ready_within?(timeout)
+      execute_and_wait(timeout)
+      !timed_out
+    end
+
+    def timed_out?
+      !!timed_out
     end
 
     def execute_and_wait(timeout, raise_on_timeout: false)
+      return value unless timed_out.nil?
       found_message = existing_value
       if found_message
         # found a previously fresh message
+        @timed_out = false
         return found_message
       else
         # Start a job if no other client has
@@ -69,10 +81,12 @@ module SidekiqDistributedCache
         if redis.wait_for_done_message(cache_tag, timeout.to_i)
           # ready now, fetch it
           log('promise calculator job finished')
+          @timed_out = false
           existing_value
-        elsif raise_on_timeout
+        else
           log('promise timed out awaiting calculator job')
-          raise TimeoutError
+          @timed_out = true
+          raise TimeoutError if raise_on_timeout
         end
       end
     end
