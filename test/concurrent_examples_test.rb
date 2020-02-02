@@ -108,4 +108,16 @@ class ConcurrentExamplesTest < ActiveSupport::TestCase
     assert_includes 1.0..2.0, duration, "Should time out after about a second"
     assert promise.timed_out?
   end
+
+  test 'asynchronous start' do
+    promise = SidekiqDistributedCache::Promise.new(klass: Doohickey, method: :do_a_thing, expires_in: 2.seconds)
+    promise.start
+    sleep 1.0
+    duration = Benchmark.realtime do
+      assert promise.ready_within?(2.seconds)
+    end
+    assert_includes 1.0..2.0, duration, "Should finish after about a second"
+    refute promise.timed_out?
+  end
+
 end

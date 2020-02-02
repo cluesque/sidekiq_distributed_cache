@@ -61,6 +61,16 @@ module SidekiqDistributedCache
       !!timed_out
     end
 
+    def start
+      # Start a job if no other client has
+      if interlock.lock_job?
+        log('promise enqueuing calculator job')
+        enqueue_job!
+      else
+        log('promise calculator job already working')
+      end
+    end
+
     def execute_and_wait(timeout, raise_on_timeout: false)
       return value unless timed_out.nil?
       found_message = existing_value
@@ -69,13 +79,7 @@ module SidekiqDistributedCache
         @timed_out = false
         return found_message
       else
-        # Start a job if no other client has
-        if interlock.lock_job?
-          log('promise enqueuing calculator job')
-          enqueue_job!
-        else
-          log('promise calculator job already working')
-        end
+        start
 
         # either a job was already running or we started one, now wait for an answer
         if redis.wait_for_done_message(cache_tag, timeout.to_i)
